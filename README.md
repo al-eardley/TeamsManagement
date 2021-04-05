@@ -22,7 +22,7 @@ The path and name of the output file is returned from the commandlet and take th
 Reads a CSV file with a list of Teams. For each Team add a new owner and remove the user from the owner role
 
 The CSV requires the following column
-	• GroupId - contains the GroupID of the Teams where the owner will be replaced
+- GroupId - contains the GroupID of the Teams where the owner will be replaced
 
 `Replace-TeamOwner -OldOwnerUPN "user1@company.com" -NewOwnerUPN "user2@company.com" -CSVFilePath "C:\Scratch\TeamMembership_alan_eardley_at_company_com.csv" -ShowDebug $false`
 
@@ -30,7 +30,7 @@ The CSV requires the following column
 Reads a CSV file with a list of Teams and removes a user from the membership of each Team 
 
 The CSV requires the following column
-	• GroupId - contains the GroupID of the Teams from with the user will be removed
+- GroupId - contains the GroupID of the Teams from with the user will be removed
 
 `Remove-TeamMember -UserUPN "alan.eardley@company.com" -CSVFilePath "C:\Scratch\TeamMembership_alan_eardley_at_comapny_com.csv" -ShowDebug $false`
 
@@ -43,8 +43,8 @@ Creates a CSV containing a list of all of the Teams in a tenant with a count of 
 Reads a CSV file with a list of Teams and adds a user as the owner
 
 The CSV requires the following column
-	• GroupId - contains the GroupID of the Teams where the owners will be added
-	• NewOwnerUPN - The UPN of the user to add as an owner
+- GroupId - contains the GroupID of the Teams where the owners will be added
+- NewOwnerUPN - The UPN of the user to add as an owner
 
 `Add-TeamOwner -CSVFilePath "C:\Scratch\AddOwner.csv" -ShowDebug $false`
 
