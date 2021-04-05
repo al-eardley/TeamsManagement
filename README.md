@@ -10,7 +10,6 @@ There are many ways to do this but most organisations will consider this when th
 2.	Take a copy of the Test.ps1 script and adapt it to your specific needs
 
 # The Commandlets
-All of the commandlets can be found at https://github.com/al-eardley/TeamsManagement
 
 ## Check-TeamMembership
 Creates a CSV file containing a list of all of the Teams that a user is a member or owner of.
