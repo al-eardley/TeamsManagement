@@ -106,15 +106,14 @@ Export-ModuleMember -Function "Write-Status"
 #region Check-TeamMembership
 <#
     .Synopsis
-    Creates a CSV containing a list of all of the Teams that a user is a member or owner of
+    Creates a CSV file containing a list of all of the Teams that a user is a member or owner of
 
     .Description
-    Iterates through all Teams that a user is a member of.
-        Adds a row to the output collection.
-    Iterates through all Teams that a user is an owner of.
-        Adds a row to the output collection.
-    Outputs the collection to a CSV file named TeamMembership_Alan_eardley_cpsglobaldev_onmicrosoft_com.csv
-
+    Iterates through all Teams that a user is a member of
+        Adds a row to the output collection if the user is a member or an owner.
+    Outputs the collection to a CSV file named TeamMembership_alan_eardley_company_com.csv
+    Returns the the path and name of the CSV file that is created
+    
     .Parameter UserUPN
     The UPN of the user to check for - this is case sensitive
 
@@ -202,7 +201,7 @@ Export-ModuleMember -Function "Check-TeamMembership"
 #region Remove-TeamMember
 <#
     .Synopsis
-    Reads a CSV file with a list of Teams to remove a user from the membership of each Team 
+    Reads a CSV file with a list of Teams and removes a user from the membership of each Team 
 
     .Description
     Provide the UPN of a user and a CSV with a column called GroupID
@@ -222,7 +221,7 @@ Export-ModuleMember -Function "Check-TeamMembership"
     .Example
     Remove-TeamMember `
         -UserUPN "alan.eardley@company.com"  `
-        -CSVFilePath "C:\TeamMembership_Alan_eardley_at_cpsglobaldev_onmicrosoft_com.csv" `
+        -CSVFilePath "C:\Scratch\TeamMembership_alan_eardley_at_company_com.csv" `
         -ShowDebug $false
 #>
 
@@ -274,7 +273,7 @@ Export-ModuleMember -Function "Remove-TeamMember"
 #region Replace-TeamOwner
 <#
     .Synopsis
-    Reads a CSV file with a list of Teams to remove a user from the ownership of each Team and add a different user as owner 
+    Reads a CSV file with a list of Teams. For each Team add a new owner and remove the user from the owner role 
 
     .Description
     Provide the UPN of a user to remove and a user to add and a CSV with a column called GroupID
@@ -299,7 +298,7 @@ Export-ModuleMember -Function "Remove-TeamMember"
     Replace-TeamOwner `
         -OldOwnerUPN "user1@company.com"  `
         -NewOwnerUPN "user2@company.com"  `
-        -CSVFilePath "C:\TeamMembership_Alan_eardley_at_cpsglobaldev_onmicrosoft_com.csv" `
+        -CSVFilePath "C:\Scratch\TeamMembership_alan_eardley_at_company_com.csv" `
         -ShowDebug $false
 #>
 
@@ -361,6 +360,7 @@ Export-ModuleMember -Function "Replace-TeamOwner"
     Iterates through all Teams in a tenante.
         Adds a row to the output collection.
     Outputs the collection to a CSV file named TeamCompliance.csv
+    Returns the path and name of the CSV file
 
     .Parameter CSVPath
     The path and name of the CSV file to create
@@ -435,7 +435,7 @@ Export-ModuleMember -Function "Check-TeamsCompliance"
 #region Add-TeamOwner
 <#
     .Synopsis
-    Reads a CSV file with a list of Teams and if the Teams have no owners add the provdied user as the owner 
+    Reads a CSV file with a list of Teams and adds a user as the owner 
 
     .Description
     Provide a CSV with a column called GroupID to identify Teams and a column called NewOwnerUPN containing the UPN of a user to be added as Owner
