@@ -36,41 +36,53 @@ function Write-Status {
         [int]$Level,
 
         [Parameter(Mandatory=$true)]
-        [ValidateSet("Start", "Debug", "Progress", "Warning", "Success")]
+        [ValidateSet("Start", "Debug", "Progress", "Warning", "Success", "Error")]
         [String]$Type,
 
         [Parameter(Mandatory=$false)]
         [Bool]$ShowDebug = $false
     )
 
-    $StartColours = @{
-        ForegroundColor = "Blue"
-    }
-    
-
-    $DebugColours = @{
-        ForegroundColor = "Cyan"
-    }
-    
-    $SuccessColours = @{
-        ForegroundColor = "Green"
-    }
-    
-    $ProgressColours = @{
-        ForegroundColor = "DarkMagenta"
-    }
-    
-    $WarningColours = @{
-        ForegroundColor = "Red"
-    }
+    $displayMessage = $true
 
     switch ($Type) {
+        "Start" {
+            $ForegroundColours = @{
+                ForegroundColor = "Blue"
+            }
+            break
+        }
         "Debug" {
             $Level = ($Level+2)
+            $displayMessage = $ShowDebug
+            $ForegroundColours = @{
+                ForegroundColor = "Cyan"
+            }
             break
         }
         "Progress" {
-            $Level = ($Level+1)
+            $ForegroundColours = @{
+                ForegroundColor = "DarkMagenta"
+            }
+            break
+        }
+        "Warning" {
+            $ForegroundColours = @{
+                ForegroundColor = "DarkOrange"
+            }
+            break
+        }
+        "Success" {
+            $ForegroundColours = @{
+                ForegroundColor = "Green"
+            }
+            break
+        }
+        "Error" {
+            $Level = 0
+            $ForegroundColours = @{
+                ForegroundColor = "Red"
+            }
             break
         }
     }
@@ -80,24 +92,8 @@ function Write-Status {
     $MessageOutput = $Message.PadLeft($Padding," ")
 
     
-    if ($Type -eq "Start") {
-        Write-Host $MessageOutput @StartColours
-    }
-    
-    if (($Type -eq "Debug") -and ($ShowDebug)) {
-        Write-Host $MessageOutput @DebugColours
-    }
-
-    if ($Type -eq "Progress") {
-        Write-Host $MessageOutput @ProgressColours
-    }
-
-    if ($Type -eq "Warning") {
-        Write-Host $MessageOutput @WarningColours
-    }
-
-    if ($Type -eq "Success") {
-        Write-Host $MessageOutput @SuccessColours
+    if ($displayMessage) {
+        Write-Host $MessageOutput @ForegroundColours
     }
 }
 Export-ModuleMember -Function "Write-Status"
@@ -130,7 +126,7 @@ Export-ModuleMember -Function "Write-Status"
         -ShowDebug $false
 #>
 
-function Get-TeamMembership {
+function Check-TeamMembership {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]
@@ -167,6 +163,15 @@ function Get-TeamMembership {
         $TeamMemberCount = ($TeamUsers | Where-Object {$_.Role -like "member"}).count
         $TeamGuestCount = ($TeamUsers | Where-Object {$_.Role -like "guest"}).count
     
+        $TeamOwnerNames = ""
+        if ($TeamOwnerCount -gt 0) {
+            Write-Status -Message "Get list of Owners" -Level ($statusLevel + 1) -Type Debug -ShowDebug $ShowDebug
+            $TeamOwners = (Get-TeamUser -GroupId $_.GroupID | Where-Object {$_.Role -like "owner"}) | Select-Object -Property User
+            $TeamOwners | ForEach-Object {
+                $TeamOwnerNames += ";$($_.User)" 
+            }
+        }
+
         Write-Status -Message "Check against $userUPN" -Level ($statusLevel + 1) -Type Debug -ShowDebug $ShowDebug
         $IsOwner = ($TeamUsers | Where-Object {($_.Role -like "owner") -and ($_.User -eq $UserUPN)}).count
         $IsMember = ($TeamUsers | Where-Object {($_.Role -like "member") -and ($_.User -eq $UserUPN)}).count
@@ -175,6 +180,7 @@ function Get-TeamMembership {
             Write-Status -Message "$userUPN is owner or member" -Level ($statusLevel + 1) -Type Debug -ShowDebug $ShowDebug
 
             $output = New-Object -TypeName PSobject 
+            $output | add-member NoteProperty "GroupId" -value $_.GroupId
             $output | add-member NoteProperty "DisplayName" -value $_.DisplayName
             $output | add-member NoteProperty "Description" -value $_.Description
             $output | add-member NoteProperty "Visibility" -value $_.Visibility
@@ -182,9 +188,12 @@ function Get-TeamMembership {
             $output | Add-Member NoteProperty "OwnerCount" -Value $TeamOwnerCount
             $output | Add-Member NoteProperty "MemberCount" -Value $TeamMemberCount
             $output | Add-Member NoteProperty "GuestCount" -Value $TeamGuestCount
-            $output | add-member NoteProperty "GroupId" -value $_.GroupId
+            $output | add-member NoteProperty "OwnerUPNs" -value $TeamOwnerNames.TrimStart(";")
             $output | add-member NoteProperty "IsOwner" -value $IsOwner
             $output | add-member NoteProperty "IsMember" -value $IsMember
+            $output | Add-Member NoteProperty "Action" -Value "No action"
+            $output | Add-Member NoteProperty "NewOwners" -Value ""
+            $output | Add-Member NoteProperty "OldOwners" -Value ""
         
             $outputCollection += $output
         }
@@ -408,9 +417,30 @@ function Check-TeamsCompliance {
         $TeamMemberCount = ($TeamUsers | Where-Object {$_.Role -like "member"}).count
         $TeamGuestCount = ($TeamUsers | Where-Object {$_.Role -like "guest"}).count
     
+        $TeamOwnerNames = ""
+        if ($TeamOwnerCount -gt 0) {
+            Write-Status -Message "Get list of Owners" -Level ($statusLevel + 1) -Type Debug -ShowDebug $ShowDebug
+            $TeamOwners = (Get-TeamUser -GroupId $_.GroupID | Where-Object {$_.Role -like "owner"}) | Select-Object -Property User
+            $TeamOwners | ForEach-Object {
+                $TeamOwnerNames += ";$($_.User)" 
+            }
+        }
+    
         Write-Status -Message "$userUPN is owner or member" -Level ($statusLevel + 1) -Type Debug -ShowDebug $ShowDebug
 
         $output = New-Object -TypeName PSobject 
+        $output | add-member NoteProperty "GroupId" -value $_.GroupId
+        $output | add-member NoteProperty "DisplayName" -value $_.DisplayName
+        $output | add-member NoteProperty "Description" -value $_.Description
+        $output | add-member NoteProperty "Visibility" -value $_.Visibility
+        $output | add-member NoteProperty "Archived" -value $_.Archived
+        $output | Add-Member NoteProperty "OwnerCount" -Value $TeamOwnerCount
+        $output | Add-Member NoteProperty "MemberCount" -Value $TeamMemberCount
+        $output | Add-Member NoteProperty "GuestCount" -Value $TeamGuestCount
+        $output | add-member NoteProperty "OwnerUPNs" -value $TeamOwnerNames.TrimStart(";")
+        $output | Add-Member NoteProperty "Action" -Value "No action"
+        $output | Add-Member NoteProperty "NewOwners" -Value ""
+        $output | Add-Member NoteProperty "OldOwners" -Value ""
         $output | add-member NoteProperty "DisplayName" -value $_.DisplayName
         $output | add-member NoteProperty "Description" -value $_.Description
         $output | add-member NoteProperty "Visibility" -value $_.Visibility
@@ -489,3 +519,120 @@ function Add-TeamOwner {
 }
 Export-ModuleMember -Function "Add-TeamOwner"
 #endregion Add-TeamOwner
+
+#region Update-TeamsCompliance
+<#
+    .Synopsis
+    Reads a CSV file from Check-TeamsCompliance and checks the Action column to determine whether to add new owners, archive or remove a Team 
+
+    .Description
+    Provide a CSV with a column called GroupID to identify Teams and a column called Action to identify the action to take:
+        UpdateOwners - Add the semi-colon separated list of UPNs in the NewOwners column and remove those in the OldOwners column
+        Archive - Set the Team to archived
+        Delete - Delete the Team
+
+    .Parameter CSVFilePath
+    The path and name of the CSV file to read
+
+    .Parameter ShowDebug
+    If true, will display debug output
+
+    .Example
+    Update-TeamsCompliance `
+        -CSVFilePath "C:\Scratch\" `
+        -ShowDebug $false
+#>
+
+function Update-TeamsCompliance {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true)]
+        [String]$CSVFilePath,
+
+        [Parameter(Mandatory=$false)]
+        [bool]$ShowDebug = $false
+    )
+
+    Write-Status -Message "Setting local variable" -Level $StatusLevel -Type Progress -ShowDebug $ShowDebug
+    $processItem = 0
+    $statusLevel = 1
+
+    Write-Status -Message "Import CSV $CSVPath" -Level $StatusLevel -Type Progress -ShowDebug $ShowDebug
+    $csvRows = Import-Csv -Path $CSVFilePath
+
+    Write-Status -Message "Processing items" -Level $StatusLevel -Type Progress -ShowDebug $ShowDebug
+    foreach ($row in $csvRows) {
+        $processItem++
+        $continue = $true
+
+        Write-Status -Message "Processing row $processItem" -Level ($StatusLevel+1) -Type Progress -ShowDebug $ShowDebug
+        $action = $row.Action
+        $groupId = $row.GroupId
+        $newOwnersString = $row.NewOwners
+        $oldOwnersString = $row.OldOwners
+
+        try {
+            $team = Get-Team -GroupId $groupId
+        } catch {
+            Write-Status -Message "Team $($team.DisplayName) does not exist" -Level ($StatusLevel+2) -Type Progress -ShowDebug $ShowDebug
+            $continue = $false
+        }
+
+        if ($continue) {
+            switch ($action) {
+                "UpdateOwners" {
+                    Write-Status -Message "Changing Owners of Team $($team.DisplayName)" -Level ($StatusLevel+2) -Type Progress -ShowDebug $ShowDebug
+
+                    if ($newOwnersString -ne "") {
+                        $newOwners = $newOwnersString.split(";")
+                        
+                        foreach ($newOwner in $newOwners) {
+                            $newOwnerExists = (Get-TeamUser -GroupId $groupId | Where-Object {($_.Role -like "owner") -and ($_.User -eq $newOwner)}).count
+                            if ($newOwnerExists -eq 0) {
+                                Write-Status -Message "Adding user $newOwner" -Level ($StatusLevel+2) -Type Progress -ShowDebug $ShowDebug
+                                Add-TeamUser -GroupId $groupId -User $newOwner -Role "owner" -ErrorAction Stop
+                            } else {
+                                Write-Status -Message "User $newOwner is already an Owner" -Level ($StatusLevel+2) -Type Success -ShowDebug $ShowDebug
+                            }
+                        }
+                    }
+
+                    if ($oldOwnersString -ne "") {
+                        $oldOwners = $oldOwnersString.split(";")
+                        
+                        foreach ($oldOwner in $oldOwners) {
+                            $oldOwnerExists = (Get-TeamUser -GroupId $groupId | Where-Object {($_.Role -like "owner") -and ($_.User -eq $oldOwner)}).count
+                            if ($oldOwnerExists -eq 1) {
+                                Write-Status -Message "Removing owner $oldOwner" -Level ($StatusLevel+2) -Type Progress -ShowDebug $ShowDebug
+                                Remove-TeamUser -GroupId $groupId -User $oldOwner -Role "owner" -ErrorAction Stop
+                            } else {
+                                Write-Status -Message "User $oldOwner is not an Owner" -Level ($StatusLevel+2) -Type Success -ShowDebug $ShowDebug
+                            }
+                        }
+                    }
+                    break
+                }
+                "Archive" {
+                    if ($team.Archived) {
+                        Write-Status -Message "Team $($team.DisplayName) is already archived" -Level ($StatusLevel+2) -Type Success -ShowDebug $ShowDebug
+                    } else {
+                        Write-Status -Message "Archiving Team $($team.DisplayName)" -Level ($StatusLevel+2) -Type Progress -ShowDebug $ShowDebug
+                        Set-TeamArchivedState -GroupId $groupId -Archived $true
+                    }
+                    break
+                }
+                "Delete" {
+                    Write-Status -Message "Deleting Team $($team.DisplayName)" -Level ($StatusLevel+2) -Type Progress -ShowDebug $ShowDebug
+                    Remove-Team -GroupId $groupId
+                    
+                    break
+                }
+                Default {
+                    Write-Status -Message "No action required" -Level ($StatusLevel+2) -Type Progress -ShowDebug $ShowDebug
+                }
+            }
+        }
+    }
+}
+Export-ModuleMember -Function "Update-TeamsCompliance"
+#endregion Update-TeamsCompliance
