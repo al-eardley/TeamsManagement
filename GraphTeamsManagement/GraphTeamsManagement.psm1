@@ -99,7 +99,7 @@ function Write-Status {
 Export-ModuleMember -Function "Write-Status"
 #endregion Write-Status
 
-#region Check-TeamMembership
+#region Check-GraphTeamMembership
 <#
     .Synopsis
     Creates a CSV file containing a list of all of the Teams that a user is a member or owner of
@@ -120,13 +120,13 @@ Export-ModuleMember -Function "Write-Status"
     If true, will display debug output
 
     .Example
-    $CSVFilePath = Check-TeamMembership `
+    $CSVFilePath = Check-GraphTeamMembership `
         -UserUPN "alan.eardley@company.com"  `
         -CSVPath "C:\Scratch\" `
         -ShowDebug $false
 #>
 
-function Check-TeamMembership {
+function Check-GraphTeamMembership {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]
@@ -204,10 +204,10 @@ function Check-TeamMembership {
 
     return $outputCSVFile
 }
-Export-ModuleMember -Function "Check-TeamMembership"
-#endregion Check-TeamMembership
+Export-ModuleMember -Function "Check-GraphTeamMembership"
+#endregion Check-GraphTeamMembership
 
-#region Remove-TeamMember
+#region Remove-GraphTeamMember
 <#
     .Synopsis
     Reads a CSV file with a list of Teams and removes a user from the membership of each Team 
@@ -228,13 +228,13 @@ Export-ModuleMember -Function "Check-TeamMembership"
     If true, will display debug output
 
     .Example
-    Remove-TeamMember `
+    Remove-GraphTeamMember `
         -UserUPN "alan.eardley@company.com"  `
         -CSVFilePath "C:\Scratch\TeamMembership_alan_eardley_at_company_com.csv" `
         -ShowDebug $false
 #>
 
-function Remove-TeamMember {
+function Remove-GraphTeamMember {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]
@@ -276,10 +276,10 @@ function Remove-TeamMember {
         }
     }
 }
-Export-ModuleMember -Function "Remove-TeamMember"
-#endregion Remove-TeamMember
+Export-ModuleMember -Function "Remove-GraphTeamMember"
+#endregion Remove-GraphTeamMember
 
-#region Replace-TeamOwner
+#region Replace-GraphTeamOwner
 <#
     .Synopsis
     Reads a CSV file with a list of Teams. For each Team add a new owner and remove the user from the owner role 
@@ -304,14 +304,14 @@ Export-ModuleMember -Function "Remove-TeamMember"
     If true, will display debug output
 
     .Example
-    Replace-TeamOwner `
+    Replace-GraphTeamOwner `
         -OldOwnerUPN "user1@company.com"  `
         -NewOwnerUPN "user2@company.com"  `
         -CSVFilePath "C:\Scratch\TeamMembership_alan_eardley_at_company_com.csv" `
         -ShowDebug $false
 #>
 
-function Replace-TeamOwner {
+function Replace-GraphTeamOwner {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]
@@ -357,10 +357,10 @@ function Replace-TeamOwner {
         }
     }
 }
-Export-ModuleMember -Function "Replace-TeamOwner"
-#endregion Replace-TeamOwner
+Export-ModuleMember -Function "Replace-GraphTeamOwner"
+#endregion Replace-GraphTeamOwner
 
-#region Check-TeamsCompliance
+#region Check-GraphTeamsCompliance
 <#
     .Synopsis
     Creates a CSV containing a list of all of the Teams in a tenant with a count of owners, members and guests
@@ -378,12 +378,12 @@ Export-ModuleMember -Function "Replace-TeamOwner"
     If true, will display debug output
 
     .Example
-    $CSVFilePath = Check-TeamsCompliance `
+    $CSVFilePath = Check-GraphTeamsCompliance `
         -CSVPath "C:\Scratch\" `
         -ShowDebug $false
 #>
 
-function Check-TeamsCompliance {
+function Check-GraphTeamsCompliance {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]
@@ -401,7 +401,8 @@ function Check-TeamsCompliance {
     $outputCSVFile = "$CSVPath$CSVFileName"
 
     Write-Status -Message "Get Teams" -Level $statusLevel -Type Progress -ShowDebug $ShowDebug
-    $teams = Get-Team 
+    $groups = Get-MgGroup -All
+    $teams = $groups | Where-Object {$_.ResourceProvisioningOptions -Contains "Team"}
     $processItemCount = $teams.count
 
     Write-Status -Message "Processing $processItemCount Teams" -Level $statusLevel -Type Progress -ShowDebug $ShowDebug
@@ -412,15 +413,15 @@ function Check-TeamsCompliance {
         Write-Status -Message "Processing Team $processItem of $processItemCount - $($_.DisplayName)" -Level ($statusLevel + 1) -Type Progress -ShowDebug $ShowDebug
 
         Write-Status -Message "Get Owners, members and guests" -Level ($statusLevel + 1) -Type Debug -ShowDebug $ShowDebug
-        $TeamUsers = Get-TeamUser -GroupId $_.GroupID
-        $TeamOwnerCount = ($TeamUsers | Where-Object {$_.Role -like "owner"}).count
-        $TeamMemberCount = ($TeamUsers | Where-Object {$_.Role -like "member"}).count
-        $TeamGuestCount = ($TeamUsers | Where-Object {$_.Role -like "guest"}).count
+        $TeamUsers = Get-MgTeamMember -TeamId $_.Id
+        $TeamOwnerCount = ($TeamUsers | Where-Object {$_.Roles -contains "owner"}).count
+        $TeamMemberCount = ($TeamUsers | Where-Object {$_.Roles -contains "member"}).count
+        $TeamGuestCount = ($TeamUsers | Where-Object {$_.Roles -contains "guest"}).count
     
         $TeamOwnerNames = ""
         if ($TeamOwnerCount -gt 0) {
             Write-Status -Message "Get list of Owners" -Level ($statusLevel + 1) -Type Debug -ShowDebug $ShowDebug
-            $TeamOwners = (Get-TeamUser -GroupId $_.GroupID | Where-Object {$_.Role -like "owner"}) | Select-Object -Property User
+        #    $TeamOwners = (Get-TeamUser -GroupId $_.GroupID | Where-Object {$_.Role -like "owner"}) | Select-Object -Property User
             $TeamOwners | ForEach-Object {
                 $TeamOwnerNames += ";$($_.User)" 
             }
@@ -450,11 +451,10 @@ function Check-TeamsCompliance {
 
     return $outputCSVFile
 }
-Export-ModuleMember -Function "Check-TeamsCompliance"
-#endregion Check-TeamsCompliance
+Export-ModuleMember -Function "Check-GraphTeamsCompliance"
+#endregion Check-GraphTeamsCompliance
 
-
-#region Add-TeamOwner
+#region Add-GraphTeamOwner
 <#
     .Synopsis
     Reads a CSV file with a list of Teams and adds a user as the owner 
@@ -472,12 +472,12 @@ Export-ModuleMember -Function "Check-TeamsCompliance"
     If true, will display debug output
 
     .Example
-    Add-TeamOwner `
+    Add-GraphTeamOwner `
         -CSVFilePath "C:\Scratch\" `
         -ShowDebug $false
 #>
 
-function Add-TeamOwner {
+function Add-GraphTeamOwner {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]
@@ -509,13 +509,13 @@ function Add-TeamOwner {
         Add-TeamUser -GroupId $groupId -User $NewOwnerUPN -Role "owner" -ErrorAction Stop
     }
 }
-Export-ModuleMember -Function "Add-TeamOwner"
-#endregion Add-TeamOwner
+Export-ModuleMember -Function "Add-GraphTeamOwner"
+#endregion Add-GraphTeamOwner
 
-#region Update-TeamsCompliance
+#region Update-GraphTeamsCompliance
 <#
     .Synopsis
-    Reads a CSV file from Check-TeamsCompliance and checks the Action column to determine whether to add new owners, archive or remove a Team 
+    Reads a CSV file from Check-GraphTeamsCompliance and checks the Action column to determine whether to add new owners, archive or remove a Team 
 
     .Description
     Provide a CSV with a column called GroupID to identify Teams and a column called Action to identify the action to take:
@@ -530,12 +530,12 @@ Export-ModuleMember -Function "Add-TeamOwner"
     If true, will display debug output
 
     .Example
-    Update-TeamsCompliance `
+    Update-GraphTeamsCompliance `
         -CSVFilePath "C:\Scratch\" `
         -ShowDebug $false
 #>
 
-function Update-TeamsCompliance {
+function Update-GraphTeamsCompliance {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]
@@ -626,5 +626,5 @@ function Update-TeamsCompliance {
         }
     }
 }
-Export-ModuleMember -Function "Update-TeamsCompliance"
-#endregion Update-TeamsCompliance
+Export-ModuleMember -Function "Update-GraphTeamsCompliance"
+#endregion Update-GraphTeamsCompliance

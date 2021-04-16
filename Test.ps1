@@ -1,7 +1,8 @@
 $userUPN = "user1@company.com"
 $newOwnerUPN = "user2@company.com"
-$CSVPath = "C:\Repo\CPSTeamsManagement\"
+$CSVPath = "D:\CPSTeamsManagement\"
 
+<#
 $CSVFilePath_TeamMembership = Get-TeamMembership `
     -UserUPN $userUPN `
     -CSVPath $CSVPath `
@@ -17,11 +18,12 @@ Replace-TeamOwner `
     -NewOwnerUPN $newOwnerUPN  `
     -CSVFilePath $CSVFilePath `
     -ShowDebug $true
+#>
 
 $CSVFilePath_TeamsCompliance = Check-TeamsCompliance `
     -CSVPath $CSVPath `
     -ShowDebug $false
 
-Add-TeamOwner `
-    -CSVFilePath "$CSVPath\Teams - AddTeamOwner.csv" `
+Update-TeamsCompliance `
+    -CSVFilePath $CSVFilePath_TeamsCompliance `
     -ShowDebug $true
