@@ -401,7 +401,7 @@ function Check-TeamsCompliance {
     $outputCSVFile = "$CSVPath$CSVFileName"
 
     Write-Status -Message "Get Teams" -Level $statusLevel -Type Progress -ShowDebug $ShowDebug
-    $teams = Get-Team 
+    $teams = Get-Team | Sort-Object DisplayName
     $processItemCount = $teams.count
 
     Write-Status -Message "Processing $processItemCount Teams" -Level $statusLevel -Type Progress -ShowDebug $ShowDebug
@@ -426,7 +426,8 @@ function Check-TeamsCompliance {
             }
         }
     
-        Write-Status -Message "$userUPN is owner or member" -Level ($statusLevel + 1) -Type Debug -ShowDebug $ShowDebug
+        Write-Status -Message "Get count of private channels" -Level ($statusLevel + 1) -Type Debug -ShowDebug $ShowDebug
+        $privateChannelCount = (Get-TeamChannel -GroupId $_.GroupID -MembershipType Private).Count
 
         $output = New-Object -TypeName PSobject 
         $output | add-member NoteProperty "GroupId" -value $_.GroupId
@@ -437,6 +438,7 @@ function Check-TeamsCompliance {
         $output | Add-Member NoteProperty "OwnerCount" -Value $TeamOwnerCount
         $output | Add-Member NoteProperty "MemberCount" -Value $TeamMemberCount
         $output | Add-Member NoteProperty "GuestCount" -Value $TeamGuestCount
+        $output | Add-Member NoteProperty "PrivateChannelCount" -Value $privateChannelCount
         $output | add-member NoteProperty "OwnerUPNs" -value $TeamOwnerNames.TrimStart(";")
         $output | Add-Member NoteProperty "Action" -Value "No action"
         $output | Add-Member NoteProperty "NewOwners" -Value ""
@@ -452,7 +454,6 @@ function Check-TeamsCompliance {
 }
 Export-ModuleMember -Function "Check-TeamsCompliance"
 #endregion Check-TeamsCompliance
-
 
 #region Add-TeamOwner
 <#

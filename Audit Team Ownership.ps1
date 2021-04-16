@@ -12,7 +12,7 @@ Import-Module MicrosoftTeams
 Connect-MicrosoftTeams
 
 #Set variables
-$CSVPath = "D:\CPSTeamsManagement\"
+$CSVPath = "D:\TeamsManagement\"
 
 #Step 1 - Check
 $CSVFilePath_TeamsCompliance = Check-TeamsCompliance `

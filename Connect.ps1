@@ -1,4 +1,4 @@
-Set-ExecutionPolicy RemoteSigned
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 #Add the CPSTeamsManagement module
 Remove-Module TeamsManagement
