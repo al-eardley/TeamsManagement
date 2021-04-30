@@ -2,7 +2,7 @@ Set-ExecutionPolicy RemoteSigned
 
 #Add the CPSTeamsManagement module
 Remove-Module CPSTeamsManagement
-Import-Module -Name ".\CPSTeamsManagement" -Verbose
+Import-Module -Name ".\TeamsManagement" -Verbose
 
 #Add the MicrosoftTeams module
 Install-Module -Name MicrosoftTeams
@@ -12,7 +12,7 @@ Import-Module MicrosoftTeams
 Connect-MicrosoftTeams
 
 #Set variables
-$CSVPath = "D:\CPSTeamsManagement\"
+$CSVPath = "D:\TeamsManagement\"
 $userUPN = "alan.eardley@company.com"
 
 #Step 1 - Check
