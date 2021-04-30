@@ -1,11 +1,11 @@
-Set-ExecutionPolicy RemoteSigned
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 #Add the CPSTeamsManagement module
-Remove-Module CPSTeamsManagement
-Import-Module -Name ".\CPSTeamsManagement" -Verbose
+Remove-Module TeamsManagement
+Import-Module -Name ".\TeamsManagement" -Verbose
 
 #Add the MicrosoftTeams module
-Install-Module -Name MicrosoftTeams
+Install-Module -Name MicrosoftTeams -Force
 Import-Module MicrosoftTeams
 
 #Connect to Microsoft Teams
